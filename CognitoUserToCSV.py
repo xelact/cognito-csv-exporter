@@ -1,8 +1,7 @@
+import os
 import boto3
-import json
 import datetime
 import time
-import sys
 import argparse
 from colorama import Fore
 
@@ -76,7 +75,9 @@ if PROFILE:
     session = boto3.Session(profile_name=PROFILE)
     client = session.client('cognito-idp', REGION)
 else:
-    client = boto3.client('cognito-idp', REGION)
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    client = boto3.client('cognito-idp', REGION, aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
 csv_new_line = {REQUIRED_ATTRIBUTE[i]: '' for i in range(len(REQUIRED_ATTRIBUTE))}
 try:
@@ -108,7 +109,9 @@ while pagination_token is not None:
         print("Error Reason: " + error_message)
         csv_file.close()
         exit()
-    except:
+    except Exception as err:
+        # print information on what went wrong
+        print(err)
         print(Fore.RED + "Something else went wrong")
         csv_file.close()
         exit()
@@ -135,8 +138,15 @@ while pagination_token is not None:
             for usr_attr in user['Attributes']:
                 if usr_attr['Name'] == requ_attr:
                     csv_line[requ_attr] = str(usr_attr['Value'])
+        if csv_line["phone_number_verified"] == "":
+            csv_line["phone_number_verified"] = "false"
+        if csv_line["cognito:mfa_enabled"] == "":
+            csv_line["cognito:mfa_enabled"] = "false"
+        if csv_line["cognito:username"] == "":
+            csv_line["cognito:username"] = csv_line["email"]
 
-        csv_lines.append(",".join(csv_line.values()) + '\n')
+        if csv_line["email_verified"] == "true" or csv_line["phone_number_verified"] == "true":
+            csv_lines.append(",".join(csv_line.values()) + '\n')
 
     csv_file.writelines(csv_lines)
 
