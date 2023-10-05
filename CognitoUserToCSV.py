@@ -145,7 +145,9 @@ while pagination_token is not None:
         if csv_line["cognito:username"] == "":
             csv_line["cognito:username"] = csv_line["email"]
 
-        if csv_line["email_verified"] == "true" or csv_line["phone_number_verified"] == "true":
+        if user['UserStatus'] == "EXTERNAL_PROVIDER" or user['UserStatus'] == "CONFIRMED":
+            if csv_line["email_verified"] == "false" and csv_line["phone_number_verified"] == "false":
+                csv_line["email_verified"] = "true"
             csv_lines.append(",".join(csv_line.values()) + '\n')
 
     csv_file.writelines(csv_lines)
